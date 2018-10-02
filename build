@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -e
+
+build_javac()  {
+	local CLASSPATH='target/test-classes:target/classes:lib/junit-4.10.jar'
+
+	local SRCDIR=${1}; shift;
+	local DSTDIR=${1}; shift;
+	local FILES=$(find $SRCDIR -type f -name \*.java | tr \\n ' ')
+
+	mkdir -p "$DSTDIR"
+
+	echo "Compiling all files in $SRCDIR; writing classes to $DSTDIR"
+	# sunapi flag necessary to suppress warnings about using Unsafe in ByteUtils
+	javac -XDenableSunApiLintControl -classpath "$CLASSPATH" -d $DSTDIR -sourcepath $SRCDIR -g -nowarn -target 1.8 -source 1.8 -encoding UTF-8 $FILES
+	}
+
+
+build_javac src target/classes
+build_javac test target/test-classes
+
