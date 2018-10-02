@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
@@ -45,7 +44,7 @@ public class FileSearchDriver {
                 final String fileName = "epoch_" + i;
                 downloadResults.add(CompletableFuture
                         .supplyAsync(() -> new FileDownloadExecutor(request.getRemoteObjectStoreClient(),
-                                request.bucketName, fileName).call(), objectStoreFileDownloadExectuor));
+                                request.bucketName, fileName).download(), objectStoreFileDownloadExectuor));
             }
         }
         for (CompletableFuture<ObjectStoreFile> fileDownloadFuture : downloadResults) {

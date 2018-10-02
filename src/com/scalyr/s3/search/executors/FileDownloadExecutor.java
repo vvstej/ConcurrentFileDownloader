@@ -19,7 +19,7 @@ public class FileDownloadExecutor {
         this.fileName = fileName;
     }
 
-    public ObjectStoreFile call() {
+    public ObjectStoreFile download() {
         int attempt = 0;
         byte[] bytes = null;
         while (attempt <= RETRY_ATTEMPTS) {
