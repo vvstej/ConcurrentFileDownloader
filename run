@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-CLASSPATH='target/test-classes:target/classes:lib/junit-4.10.jar'
+CLASSPATH='target/test-classes:target/classes:lib/junit-4.10.jar:lib/guava-23.0.jar'
 
 main() {
 	if [ "$1" = 'test' ]; then

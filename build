@@ -2,7 +2,7 @@
 set -e
 
 build_javac()  {
-	local CLASSPATH='target/test-classes:target/classes:lib/junit-4.10.jar'
+	local CLASSPATH='target/test-classes:target/classes:lib/guava-23.0.jar:lib/junit-4.10.jar'
 
 	local SRCDIR=${1}; shift;
 	local DSTDIR=${1}; shift;

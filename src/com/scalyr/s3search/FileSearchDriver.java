@@ -34,37 +34,47 @@ public class FileSearchDriver {
     }
 
     public void downloadAndSearch() {
-        final List<CompletableFuture<ObjectStoreFile>> downloadResults = Lists.newArrayList();
-        final List<CompletableFuture<SearchResult>> searchResults = Lists.newArrayList();
+        try {
+            final List<CompletableFuture<ObjectStoreFile>> downloadResults = Lists.newArrayList();
+            final List<CompletableFuture<SearchResult>> searchResults = Lists.newArrayList();
 
-        Instant start = Instant.now();
+            Instant start = Instant.now();
 
-        for (final FileDownloadAndSearchRequest request : requestObjects) {
-            for (int i = request.startEpoch; i < request.endEpoch; i++) {
-                final String fileName = "epoch_" + i;
-                downloadResults.add(CompletableFuture
-                        .supplyAsync(() -> new FileDownloadExecutor(request.getRemoteObjectStoreClient(),
-                                request.bucketName, fileName).download(), objectStoreFileDownloadExectuor));
+            for (final FileDownloadAndSearchRequest request : requestObjects) {
+                for (int i = request.startEpoch; i < request.endEpoch; i++) {
+                    final String fileName = "epoch_" + i;
+                    downloadResults
+                            .add(CompletableFuture
+                                    .supplyAsync(
+                                            () -> new FileDownloadExecutor(request.getRemoteObjectStoreClient(),
+                                                    request.bucketName, fileName).download(),
+                                            objectStoreFileDownloadExectuor));
+                }
             }
+            for (CompletableFuture<ObjectStoreFile> fileDownloadFuture : downloadResults) {
+                searchResults.add(fileDownloadFuture.thenComposeAsync(file -> CompletableFuture.supplyAsync(
+                        () -> new TextSearchExecutor(textSearcher, textToSearch, file).searchFile(),
+                        fileSearchExecutor)));
+            }
+
+            CompletableFuture<Void> combinedFuture =
+                    CompletableFuture.allOf(searchResults.toArray(new CompletableFuture[searchResults.size()]));
+
+            CompletableFuture<List<SearchResult>> results = combinedFuture.thenApply(v -> {
+                return searchResults.stream().map(searchResultFuture -> searchResultFuture.join())
+                        .collect(Collectors.toList());
+            });
+            
+            long countOfMatches =
+                    results.join().stream().mapToInt(searchResult -> searchResult.getNumberOfMatches()).sum();
+            Instant end = Instant.now();
+            long timeElapsed = Duration.between(start, end).toMillis();
+
+            System.out.println("Number of matches: " + countOfMatches);
+            System.out.println("Search time in milliseconds: " + timeElapsed);
+        } finally {
+            this.objectStoreFileDownloadExectuor.shutdownNow();
+            this.fileSearchExecutor.shutdownNow();
         }
-        for (CompletableFuture<ObjectStoreFile> fileDownloadFuture : downloadResults) {
-            searchResults.add(fileDownloadFuture.thenComposeAsync(file -> CompletableFuture.supplyAsync(
-                    () -> new TextSearchExecutor(textSearcher, textToSearch, file).searchFile(), fileSearchExecutor)));
-        }
-
-        CompletableFuture<Void> combinedFuture =
-                CompletableFuture.allOf(searchResults.toArray(new CompletableFuture[searchResults.size()]));
-
-        CompletableFuture<List<SearchResult>> results = combinedFuture.thenApply(v -> {
-            return searchResults.stream().map(searchResultFuture -> searchResultFuture.join())
-                    .collect(Collectors.toList());
-        });
-        Instant end = Instant.now();
-
-        long countOfMatches = results.join().stream().count();
-        long timeElapsed = Duration.between(start, end).toMillis();
-
-        System.out.println("Number of matches: " + countOfMatches);
-        System.out.println("Search time in milliseconds: " + timeElapsed);
     }
 }
